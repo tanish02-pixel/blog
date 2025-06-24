@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title><%= blog.title %> - Blogify</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <link rel="icon" type="image/png" href="/blogging.png">
+
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    #vanta-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    .content-wrapper {
+      position: relative;
+      z-index: 1;
+      padding: 2rem;
+      color: white;
+    }
+
+    pre {
+      background-color: rgba(255, 255, 255, 0.05);
+      padding: 1rem;
+      border-radius: 8px;
+      color: #f8f9fa;
+    }
+
+    .btn-outline-danger {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-outline-danger:hover {
+      background-color: rgba(255, 0, 0, 0.2);
+    }
+
+    .text-muted {
+      color: #ccc !important;
+    }
+
+    .back-button {
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      backdrop-filter: blur(8px);
+    }
+
+    .back-button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    a {
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="vanta-bg"></div>
+
+  <div class="content-wrapper container mt-4">
+    <h1><%= blog.title %></h1>
+    <p class="text-muted">
+      by <%= blog.author?.fullName || "Anonymous" %> | <%= blog.createdAt.toLocaleDateString() %>
+    </p>
+
+    <% if (blog.image) { %>
+      <img src="<%= blog.image %>" 
+           alt="Blog Image" 
+           class="img-thumbnail d-block mx-auto mb-3"
+           style="max-width: 400px; height: auto;" />
+    <% } %>
+
+    <pre style="white-space: pre-wrap; word-wrap: break-word;"><%= blog.content %></pre>
+
+    <% if (currentUserId) { %>
+      <button id="likeBtn" class="btn btn-outline-danger btn-sm">
+        ❤️ Like (<span id="likeCount"><%= blog.likes.length %></span>)
+      </button>
+    <% } else { %>
+      <p><a href="/signin">Sign in to like</a></p>
+    <% } %>
+
+    <span class="ms-2 text-muted">💬 Comments: <span id="commentCount"><%= blog.comments.length %></span></span>
+
+    <hr />
+
+    <% if (currentUserId) { %>
+      <form id="commentForm">
+        <div class="mb-3">
+          <textarea name="comment" id="commentInput" class="form-control" rows="3" placeholder="Write a comment..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Post Comment</button>
+      </form>
+    <% } else { %>
+      <p><a href="/signin">Sign in</a> to comment.</p>
+    <% } %>
+
+    <h5 class="mt-4">Comments:</h5>
+    <div id="commentList">
+      <% blog.comments.forEach(comment => { %>
+        <div class="mb-2">
+          <strong><%= comment.user?.fullName || "Anonymous" %></strong>: <%= comment.content %>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+
+  <a href="<%= backTarget %>" class="btn btn-primary btn-sm rounded-pill position-fixed m-3" style="top: 0; left: 0; z-index: 999;  background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3);">
+    ← Back
+  </a>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vanta/dist/vanta.rings.min.js"></script>
+  <script>
+    VANTA.RINGS({
+      el: "#vanta-bg",
+      mouseControls: true,
+      touchControls: true,
+      minHeight: 200.00,
+      minWidth: 200.00,
+      scale: 1.00,
+      scaleMobile: 1.00,
+      backgroundColor: 0x000000
+    });
+
+    // ❤️ Like AJAX
+    const likeBtn = document.getElementById("likeBtn");
+    if (likeBtn) {
+      likeBtn.addEventListener("click", async () => {
+        const res = await fetch("/blogs/<%= blog._id %>/like", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById("likeCount").innerText = data.likesCount;
+        } else {
+          alert("Failed to like. Please sign in.");
+        }
+      });
+    }
+
+    // 💬 Comment AJAX
+    const commentForm = document.getElementById("commentForm");
+    const commentInput = document.getElementById("commentInput");
+    const commentList = document.getElementById("commentList");
+    const commentCount = document.getElementById("commentCount");
+
+    commentForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const commentText = commentInput.value.trim();
+      if (!commentText) return;
+
+      const res = await fetch("/blogs/<%= blog._id %>/comment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment: commentText })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const div = document.createElement("div");
+        div.classList.add("mb-2");
+        div.innerHTML = `<strong>${data.username}</strong>: ${data.content}`;
+        commentList.appendChild(div);
+        commentInput.value = "";
+        commentCount.innerText = parseInt(commentCount.innerText) + 1;
+      } else {
+        alert("Failed to comment.");
+      }
+    });
+  </script>
+</body>
+</html>
