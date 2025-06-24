@@ -1,4 +1,7 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
+import  connectDB  from './connect.js';
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
 import bcrypt from "bcrypt";
@@ -9,8 +12,12 @@ import { isLoggedIn } from "./middlewares/auth.js";
 import path from "path";
 import { Blog } from "./models/blog.js";
 
+
+await connectDB(process.env.MONGO_URL)
+
+
 const app = express();
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 const JWT_SECRET = "8299877735";
 
 // ⛓️ Middlewares
@@ -44,11 +51,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// 🌐 MongoDB Connection
-mongoose
-  .connect("mongodb://127.0.0.1:27017/blogdb")
-  .then(() => console.log("✅ MONGODB CONNECTED"))
-  .catch((err) => console.error("❌ MongoDB Error:", err));
+
 
 // 🎨 View engine setup
 app.set("view engine", "ejs");
