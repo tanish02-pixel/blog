@@ -11,6 +11,7 @@ import User from "./models/user.js";
 import { isLoggedIn } from "./middlewares/auth.js";
 import path from "path";
 import { Blog } from "./models/blog.js";
+import {storage} from "./cloudinary.js";
 
 
 await connectDB(process.env.MONGO_URL)
@@ -182,13 +183,13 @@ app.post("/signin", async (req, res) => {
 // ➕ Create blog
 app.post("/blogs", upload.single("image"), isLoggedIn, async (req, res) => {
   const { title, content } = req.body;
-  const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+  const imageUrl = req.file ? req.file.path : null;
 
   const newBlog = new Blog({
     title,
     content,
     author: req.user._id,
-    image: imagePath
+    image: imageUrl
   });
 
   await newBlog.save();
